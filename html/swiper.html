@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+	<script type="text/javascript"> 
+	window.onload=function(){  
+		 setInterval(function(){   
+			 var date = new Date();
+			 var year = date.getFullYear() // 年
+			 var month = date.getMonth() + 1; // 月
+			 var day  = date.getDate(); // 日
+			 var hour = date.getHours(); // 时
+			 var minutes = date.getMinutes(); // 分
+			 var seconds = date.getSeconds() //秒
+			 var weekArr = [ '星期天','星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+			 var week = weekArr[date.getDay()];
+			 // 给一位数数据前面加 “0”
+			 if (month >= 1 && month <= 9) {
+			  month = "0" + month;
+			 }
+			 if (day >= 0 && day <= 9) {
+			  day = "0" + day;
+			 }
+			 if (hour >= 0 && hour <= 9) {
+			  hour = "0" + hour;
+			 }
+			 if (minutes >= 0 && minutes <= 9) {
+			  minutes = "0" + minutes;
+			 }
+			 if (seconds >= 0 && seconds <= 9) {
+			  seconds = "0" + seconds;
+			 }
+			//获取id=Date的标签，加入内容。	 
+			 var d=document.getElementById("Date2"); 
+			 if(hour>=12){
+				 hour-=12;
+				 if (hour >= 0 && hour <= 9) {
+				  hour = "0" + hour;
+				 }
+				 d.innerHTML=" &nbsp;今天是："+year + " 年 " + month + " 月 " + day + " 日 "+" 下午 " + hour + " 时 "+ minutes + " 分 " + seconds + " 秒 " + week+" 单击角标有惊喜";
+			 }else{
+				 d.innerHTML=" &nbsp;今天是："+year + " 年 " + month + " 月 " + day + " 日 "+" 上午 " + hour + " 时 "+ minutes + " 分 " + seconds + " 秒 " + week+" 单击角标有惊喜";
+				}
+			 },1000)
+		};
+		
+	</script>
+    <title>轮播图</title>
+    <style>
+            *{
+                padding: 0;
+                margin: 0;
+              }
+              #slideshow{
+                width: 950px;  
+                height: 725px;
+                margin: 0 auto; /*设置在页面水平居中*/
+                overflow: hidden;
+                position: relative;  
+              }
+              #slideshow img{
+                width: 950px;
+				height: 725px;
+                position: absolute; /*图片采取绝对定位，均位于左上角，重叠在一起*/
+                top: 0;
+                left: 0;
+                opacity: 0; /*初始不透明度为0，图片都看不见*/
+                transition: opacity 1s linear; /*定义一个关于透明度的transition*/
+              }
+              #slideshow img.active{
+                opacity: 1; /*有active类的图片不透明度为1，即显示图片*/
+              }
+              /*-- 设置页码的样式 --*/
+              #slideshow div{
+                width: 100%;
+                position: absolute;
+                bottom: 10px;
+                text-align: center;
+              }
+              #slideshow span{
+                display: inline-block;
+                width: 25px;
+                line-height: 25px; /*当只有一行文本时height等于line-height*/
+                border-radius: 25px; /*设置页码为圆形*/
+                margin: 0 15px;  
+                background: white;
+                font-size: 16px;
+              }
+              #slideshow span.active{
+                color: white;
+                background: #FFDD55;
+              }
+              /*-- 设置图片描述文本的样式 --*/
+              #slideshow p{
+                position: absolute;
+                top: 30px;
+                left: -400px; /*相对于轮播图左侧左移400px*/
+                line-height: 30px;
+                padding: 5px 30px;
+                font-size: 20px;
+                color: white;
+                background-color: rgba(100,100,100,0.6); /*用rgba设置一个带透明度的背景颜色*/
+                opacity: 0;
+                transition: all 0.5s;
+              }
+              #slideshow p.active{
+                left: 0;
+                opacity: 1;
+              }
+			  #Date2{
+				  width: 777px;
+				  height: 20px;
+				  line-height: 20px;
+				  font-size: 22px;
+				  background-image:-webkit-linear-gradient(left,#0d3adb,#f47920 10%,#d71345 20%,#f7acbc 30%,#ffd400 40%,#3498db 50%,#f47920 60%,#d71345 70%,#f7acbc 80%,#ffd400 90%,#3bd9db);
+				  color: #ffff07;
+			  }
+    </style>
+</head>
+<body>
+    <div id="slideshow">
+            <img class="active" src="../img/fp1.jpg" />
+            <img src="../img/fp2.jpg"/>
+            <img src="../img/fp3.jpg"/>
+			<img src="../img/fp4.jpg"/>
+			<img src="../img/fp5.jpg"/>
+            <div>
+                <span class="active"> 1 </span>
+                <span> 2 </span>
+                <span> 3 </span>
+				<span> 4 </span>
+				<span> 5 </span>
+            </div>
+            <a href="http://47.112.215.22/caicai"><p class="active">第一幅：阳光善良可爱彩！~</p></a>
+            <a href="http://47.112.215.22/caimovie"><p>第二幅：彩彩的杰作 稀饭了~</p>
+			<a href="http://47.112.215.22/zhufu"><p>第三幅：新发型超仙儿的有木有</p>
+		    <a href="http://47.112.215.22/xuyuan"><p>第四幅：而且搭配也超可的有木有</p>
+			<a href="http://47.112.215.22/games"><p>第五幅：记得你说日期差距不大，那放个全寝福</p>
+    </div>
+	<marquee>
+		<p id="Date2"></p>
+	</marquee>
+</body>
+
+<script language="JavaScript">
+    //---------主角：轮播图函数-------------
+		function slideshow() {
+			var slideshow=document.getElementById("slideshow"),
+			imgs=slideshow.getElementsByTagName("img"), //得到图片们
+			pages=slideshow.getElementsByTagName("span"), //得到页码们
+			descrips=slideshow.getElementsByTagName("p"), //得到描述们
+			current=0; //current为当前活跃的图片编号
+			function slideOff() {
+			  imgs[current].className=""; //图片淡出
+			  pages[current].className="";
+			  descrips[current].className="";
+			}
+			function slideOn() {
+			  imgs[current].className="active"; //图片淡入
+			  pages[current].className="active";
+			  descrips[current].className="active";
+			}
+			function changeSlide() { //切换图片的函数
+			  slideOff();
+			  current++; //自增1
+			  if(current>=5) current=0;
+			  slideOn();
+			}
+			//每2s调用changeSlide函数进行图片轮播
+			var slideon=setInterval(changeSlide,2000);
+		  
+			slideshow.onmouseover=function () {
+			  clearInterval(slideon); //当鼠标移入时清除轮播事件
+			}
+			slideshow.onmouseout=function () {
+			  slideon=setInterval(changeSlide,2500); //当鼠标移出时重新开始轮播事件
+			}
+			for(var i=0; i<pages.length; i++) { //定义鼠标移入和移出页码事件
+			  pages[i].onmouseover=function(){
+				slideOff(); //图片淡出
+				current=this.innerHTML-1; //得到鼠标停留的页码对应的current
+				slideOn(); //图片淡出
+			  }
+			}
+		  }
+		  slideshow();
+</script>
+</html>
