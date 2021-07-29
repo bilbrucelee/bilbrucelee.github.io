@@ -13,7 +13,7 @@ $(function () {
                 i++;
             }, 4000);
         } else {
-			$('.begin').text("很简单，嘻嘻");
+			$('.begin').text("18岁啦，生日快乐丫");
 			$('.begin').fadeIn();
             return;
         }
