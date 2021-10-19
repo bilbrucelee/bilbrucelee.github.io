@@ -1,0 +1,523 @@
+<template>
+	<!-- 视频播放页面 ，nvue 加强版-->
+	<view class="nv-video-page">
+		
+		
+		<!-- 视频上下滑动，nvue加强版 -->
+		
+		<NvVerticalRoll
+			@change="onChange" :num="list.length" 
+			:style="{'width': '750rpx', 'height': windowHeight+'px', 'background': '#000000'}"
+		>
+			<cell  v-for="(item, index) in list"
+				:key="index" 
+				:data-index="index" 
+				:recycle="false"
+				class="list-item"
+				:style="{'height': windowHeight + 'px'}"
+			>
+				<!-- 视频组件 -->
+				<view class="video-box" >
+					<video  
+						:ref="'mVideo'+index" 
+						:id="'mVideo'+index"
+						:style="{'height': windowHeight+'px'}"
+						:data-set="{index}"
+						class="mVideo" 
+						v-if="item.url != null && current == index"
+						:src="item.url.url"
+						:poster="item.coverUrl"
+						:controls="true" 
+						loop 
+						:show-loading="true"
+						:autoplay="true"
+						objectFit="contain"
+						:enable-progress-gesture="true"
+						:show-fullscreen-btn="true"
+						:danmu-btn="false"
+						:enable-danmu="false"
+						@play="onplay"
+						@loadedmetadata="onLoadedmetadata"
+						@error="videoErrorCallback" 
+						@timeupdate="onUpdateTime"
+						@pause="onPause"
+						@controlstoggle="controlstoggle"
+					>
+						<cover-view class="nv-title-bar" :style="{'marginTop': statusBarHeight+'px'}">
+							<view class="nv-back-icon" @click="onClickBack"> 
+							</view>
+						</cover-view>
+						
+						<!-- 视频信息 -->
+						<cover-view class="video-info-box">
+							<text class="video-info-title">@{{item.creator ? item.creator.map(item=>item.userName).join(',') : '未知'}}</text>
+							<text class="video-info-artist">{{item.title}}</text>
+						</cover-view>
+						
+					</video>
+				</view>
+				
+				
+				
+			</cell>
+		</NvVerticalRoll>
+		
+		<!-- 评论区 -->
+		<!-- <u-popup 
+			v-model="showComment" 
+			safe-area-inset-bottom 
+			closeable 
+			mode="bottom"
+			border-radius="10"
+			height="800rpx"
+			style="z-index: 999;"
+		>
+			<sq-comments ref="comments"/>
+		</u-popup> -->
+	</view>
+</template>
+
+<script>
+	const system = uni.getSystemInfoSync();
+	import NvVerticalRoll from '@/components/custom/nv-vertical-roll.vue';
+	import api from '@/service/yunApi.js';
+	
+	export default {
+		components: {
+			NvVerticalRoll,
+		},
+		props: {
+		},
+		data() {
+			return {
+				windowHeight: system.windowHeight,
+				statusBarHeight: system.statusBarHeight,
+				//传递的视频id
+				id: 1,
+				//类型，1-mv，2-视频
+				type: 1, 
+				//视频列表
+				list: [],
+				//当前swiper-item下标
+				current : 0,
+				//视频是否播放中
+				//playing: false,
+				//进度信息
+				processData: {
+					currentTime: 0,
+					duration: 0,
+				},
+				//是否显示评论层，对返回键统一监听，当为true时执行返回，则先关闭评论
+				showComment: false,
+			}
+		},
+		computed: {
+			processPer(){
+				let {currentTime, duration} = this.processData;
+				return Math.ceil((currentTime/duration)*100);
+			},
+			layoutHeight(){
+				let {windowHeight, statusBarHeight} = this;
+				return windowHeight - statusBarHeight;
+			},
+		},
+		watch:{
+			
+		},
+		onLoad(option) {
+			this.id = option.id;
+			this.type = option.type;
+		},
+		onReady() {
+			
+			this.getMediaData();
+		},
+		created() {
+			console.log('clientHeight---', system.windowHeight);
+			this.$api = api;
+		},
+		onBackPress() {
+			this.pause();
+		},
+		methods: {
+			/**
+			 * 获取视频或mv数据
+			 */
+			getMediaData(){
+				let {id, type} = this;
+				//2--视频
+				if (type == 2) {
+					this.$api.videoDetail({data: {id: id}}).then(data => {
+						let vdData = data.data;
+						let videoData = {
+							vid: vdData.vid,
+							title: vdData.title,
+							videoType: 2,
+							coverUrl: vdData.coverUrl,
+							shareCount: vdData.shareCount,
+							commentCount: vdData.commentCount,
+							subCount: vdData.subCount,
+							creator: [{userName: vdData.creator.nickname}],
+						};
+						this.list.push(videoData);
+						this.doPlay(this.current);
+						
+						//加载相关视频
+						this.getRelatedAllvideo(id);
+					}).catch(()=>{
+						//加载相关视频
+						this.getRelatedAllvideo(id);
+					});
+				} else {
+					//1-mv
+					this.$api.mvDetail({data: {mvid: id}}).then(data => {
+						let mvData = data.data;
+						let videoData = {
+							vid: mvData.id,
+							title: mvData.name,
+							videoType: 1,
+							coverUrl: mvData.cover,
+							shareCount: mvData.shareCount,
+							commentCount: mvData.commentCount,
+							subCount: mvData.subCount,
+							creator: [{userName: mvData.artistName}],
+						};
+						this.list.push(videoData);
+						this.doPlay(this.current);
+						
+						//加载相关视频
+						this.getRelatedAllvideo(id);
+					}).catch(()=>{
+						//加载相关视频
+						this.getRelatedAllvideo(id);
+					});
+				}
+			},
+			/**
+			 * 上下切换监听
+			 */
+			onChange(current){
+				console.log('onChange:', current);
+				
+				try {
+					//暂停上下两个的视频
+					this.pause(current-1);
+					this.pause(current+1);
+				} catch(e) {
+					console.error(e);
+				}
+				this.current = current;
+				this.doPlay(current);
+				
+				let {list} = this;
+				if (current == (list.length-1)) {
+					this.getRelatedAllvideo(list[list.length-1].vid);
+				}
+			},
+			/**
+			 *  获取相关视频
+			 * id: 视频id
+			 */
+			getRelatedAllvideo(id){
+				this.$api.relatedAllvideo({data: {id: id}}).then(data=>{
+					let videoList = data.data;
+					videoList.map(item=>{
+						//播放类型: 1-mv，2-视频
+						item.videoType = 2;
+					});
+					
+					this.list.push(...videoList);
+					if (this.current == 0) {
+						this.doPlay(0);
+					}
+				});
+			},
+			
+			/**
+			 * 执行视频播放，根据下标
+			 * @param {Object} index
+			 */
+			doPlay(index){
+				let item = this.list[index];
+				
+				if (item.url) {
+					this.play(index);
+					return;
+				}
+				//获取到播放地址，mv和视频的地址接口不同
+				if (item.videoType === 2) {
+					this.playVideo(index);
+				} else {
+					this.playMv(index);
+				}
+			},
+			/**
+			 * 播放视频，通过这个接口获取播放地址
+			 */
+			playVideo(index){
+				let {list} = this;
+				let item = list[index];
+				if (!item) {
+					return;
+				}
+				console.log('playVideo', item);
+				//需要从接口中取视频地址
+				if (!item.url) {
+					this.$api.videoUrl({data:{id: item.vid}}).then(data=>{
+						let urls = data.urls;
+						if (urls && urls.length > 0) {
+							item.url = urls[0];
+							item.urls = urls;
+							//通知视图更新
+							this.$set(this.list, index, item);
+						} else {
+							this.showNoneToast({
+								title: '播放地址找不到'
+							})
+						}
+					});
+				}
+			},
+			/**
+			 * 播放mv
+			 */
+			playMv(index){
+				let {list} = this;
+				let item = list[index];
+				if (!item) {
+					return;
+				}
+				if (!item.url) {
+					this.$api.mvUrl({data:{id: item.vid}}).then(data=>{
+						let urlData = data.data;
+						if (urlData) {
+							item.url = urlData;
+							//通知视图更新
+							this.$set(this.list, index, item);
+						} else {
+							this.showNoneToast({
+								title: '播放地址找不到'
+							});
+						}
+					});
+				}
+			},
+			videoErrorCallback(e) {
+				console.error('videoErrorCallback', e);
+			},
+			/**
+			 * 视频元数据加载完成时触发
+			 */
+			onLoadedmetadata(ev){
+				let {current} = this;
+				this.doPlay(current);
+			},
+			/**
+			 * 当开始/继续播放时触发play事件	
+			 */
+			onPlay(ev){
+				console.log('onPlay', ev);
+				let {detail, currentTarget}  = ev;
+				
+				this.processData = detail;
+				this.doPauseAudio();
+				
+				let index = currentTarget.dataset.set.index;
+				let item = this.list[index];
+				item.playing = true;
+				this.$set(this.list, index, item);
+			},
+			/**
+			 * 进度更新
+			 * @param {Object} ev
+			 */
+			onUpdateTime(ev){
+				let {detail}  = ev;
+				this.processData = detail;
+			},
+			/**
+			 * 暂停时触发
+			 */
+			onPause(ev){
+				console.log("onPause", ev);
+				
+				let {detail, currentTarget: {dataset: {set}}}  = ev;
+				let index = set.index;
+				let item = this.list[index];
+				item.playing = false;
+				this.$set(this.list, index, item);
+			},
+			
+			/**
+			 * 打开评论
+			 */
+			openComment(){
+				this.showComment= true;
+				this.$nextTick(()=>{
+					let {current, list} = this;
+					let item = list[current];
+					let type = item.videoType === 2 ? 5:1;
+					this.$refs.comments.getList({type:type, id: item.vid});
+				});
+			},
+			/**
+			 * 播放控制条显示时
+			 */
+			controlstoggle(e){
+				console.debug(e, 'controlstoggle');
+			},
+			/**
+			 * 当显示时
+			 */
+			onActive(){
+				console.debug("onActive--mv--tab")
+				this.play();
+			},
+			/**
+			 * 隐藏时
+			 */
+			onHidden(){
+				console.debug("onHidden--mv--tab")
+				this.pause();
+			},
+			/**
+			 * 暂停播放
+			 */
+			pause(index){
+				if (!index) {
+					index = this.current;
+				}
+				let videoContext = uni.createVideoContext('mVideo' + index);
+				if (videoContext != null) {
+					videoContext.pause();
+				} else {
+					console.log("video 上下文不存在");
+				}
+			},
+			/**
+			 * 开始播放
+			 */
+			play(index){
+				if (!index) {
+					index = this.current;
+				}
+				this.$nextTick(()=>{
+					let videoContext = uni.createVideoContext('mVideo' + index);
+					if (videoContext != null) {
+						videoContext.play();
+					} else {
+						console.log("video 上下文不存在");
+					}
+				});
+			},
+			/**
+			 * 点击当前视频控件
+			 */
+			onClickVideo(ev){
+				console.log('onClickVideo', ev);
+				let {detail, currentTarget: {dataset: {set}}}  = ev;
+				let index = set.index;
+				let item = this.list[index];
+				let playing = item.playing;
+				
+				if (playing === true) {
+					this.pause(index);
+				} else {
+					this.play(index);
+				}
+			},
+			/**
+			 * on click back
+			 */
+			onClickBack(){
+				uni.navigateBack();
+			},
+		},
+	}
+</script>
+
+<style scoped>
+	.nv-video-page{
+		width: 750rpx;
+		background-color: #0062CC;
+	}
+	
+	.nv-title-bar {
+		background-color: transparent;
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: 750rpx;
+		height: 55rpx;
+		z-index: 999;
+	}
+	
+	.nv-back-icon {
+		
+	}
+	
+	.nv-back-icon-text {
+		width: 100rpx;
+		height: 55rpx;
+		font-size: 32rpx;
+		color: #ffffff;
+		margin-left: 20rpx;
+		margin-right: 20rpx;
+		padding-left: 20rpx;
+		padding-right: 20rpx;
+	}
+	
+	.video-box{
+		width: 750rpx;
+		position: relative;
+	}
+	
+	.bg-image{
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background-color: rgba(0,0,0,.3);
+	}
+	
+	.list-item{
+		
+	}
+	
+	.mVideo{
+		width: 750rpx;
+	}
+	
+	.video-box{
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background-color: rgba(0,0,0,.2);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+	
+	.video-info-box {
+		position: absolute;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		padding: 24rpx;
+		padding-bottom: 60rpx;
+	}
+	.video-info-title{
+		font-size: 28rpx;
+		font-weight: 600;
+		color: #ffffff;
+		text-align: left;
+		margin-bottom: 20rpx;
+	}
+	.video-info-artist{
+		font-size: 28rpx;
+		color: #ffffff;
+	}
+</style>
